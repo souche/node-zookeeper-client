@@ -15,16 +15,24 @@
     "url": "https://github.com/alexguan/node-zookeeper-client"
   },
   "scripts": {
-    "pretest": "eslint index.js lib/*.js lib/jute/*.js",
-    "test": "mocha --recursive --reporter spec test/*",
-    "coverage": "istanbul cover _mocha --recursive test/*"
+    "test": "npm run lint -- --fix && npm run test-before && npm run test-local && npm run test-after",
+    "test-before": "docker-compose up -d && npm run build",
+    "test-local": "ava test/** --serial",
+    "test-after": "docker-compose down && npm run clean",
+    "test-cov": "nyc ava test/* --serial",
+    "cov": "npm run test-before && npm run test-cov && npm run test-after && nyc report --reporter=html && rm -rf .nyc_output",
+    "report": "nyc report --reporter=html",
+    "lint": "eslint .",
+    "build": "tsc --build tsconfig.json",
+    "clean": "tsc --build tsconfig.json --clean",
+    "prepublish": "npm run build",
+    "postpublish": "npm run clean"
   },
   "engines": {
-    "node": ">=0.6.0"
+    "node": ">=8.9.0"
   },
   "dependencies": {
-    "underscore": "~1.4.4",
-    "async": "~0.2.7"
+    "lodash": "^4.17.11"
   },
   "licenses": [
     {
@@ -33,9 +41,25 @@
     }
   ],
   "devDependencies": {
-    "chai": "~1.5.0",
-    "eslint": "^3.2.0",
-    "istanbul": "~0.1.34",
-    "mocha": "~1.9.0"
-  }
+    "@istanbuljs/nyc-config-typescript": "^1.0.1",
+    "@typescript-eslint/eslint-plugin": "^2.6.0",
+    "@typescript-eslint/parser": "^2.6.0",
+    "ava": "^2.4.0",
+    "eslint": "^6.0.1",
+    "eslint-config-egg": "^6.0.0",
+    "nyc": "^14.1.1",
+    "rewire": "^4.0.1",
+    "ts-node": "^8.6.2",
+    "tslib": "^1.9.0",
+    "typescript": "^3.5.2"
+  },
+  "ava": {
+		"compileEnhancements": false,
+		"extensions": [
+			"ts"
+		],
+		"require": [
+			"ts-node/register"
+		]
+	}
 }

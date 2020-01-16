@@ -1,0 +1,159 @@
+#!/usr/bin/env node
+
+/**
+ * xiedacon created at 2019-05-29 17:31:55
+ *
+ * Copyright (c) 2019 Souche.com, all rights reserved.
+ */
+'use strict';
+
+const fs = require('fs');
+const _ = require('lodash');
+
+/**
+ *
+ * @param {{ name: string, deps: any[], attrs: any[], module: { name: string, clazzes: {} } }} clazz
+ * @param {string} str
+ */
+function parseType(clazz, str) {
+  /** @type {{ name: string, path: string, realType: string, jsType: string, subType?: { name: string } }} */
+  const type = {};
+
+  if (str.startsWith('vector<')) {
+    const subType = parseType(clazz, str.slice(7, -1));
+    clazz.deps.push(subType);
+    type.subType = subType;
+  }
+
+  str = str.split('<')[0];
+  type.name = str.split('.').pop();
+  type.path = `${clazz.module.clazzes[type.name] && clazz.name !== type.name ? '.' : '..'}/${str.replace(/\./g, '/')}`;
+  type.realType = ({
+    boolean: '_boolean|boolean',
+    buffer: 'buffer|Buffer',
+    int: 'int|number',
+    long: 'long|Buffer',
+    ustring: 'ustring|string',
+    vector: 'vector|Array',
+  })[type.name] || type.name;
+  type.jsType = ({
+    boolean: 'boolean',
+    buffer: 'Buffer',
+    int: 'number',
+    long: 'Buffer',
+    ustring: 'string',
+    vector: 'Array',
+  })[type.name] || type.name;
+
+  if (type.name === 'boolean') {
+    type.name = '_boolean';
+  }
+
+  clazz.deps.push(type);
+
+  return type;
+}
+
+/**
+ *
+ * @param {{ name: string, deps: any[], attrs: any[], module: { name: string, clazzes: {} } }} clazz
+ * @param {string} str
+ */
+function parseField(clazz, str) {
+  str
+    .split(/;/g)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .forEach(s => {
+      const [ type, name ] = s.split(/ /g);
+
+      clazz.attrs.push({ name, type: parseType(clazz, type) });
+    });
+
+  clazz.deps = _.unionBy(clazz.deps, 'name').sort();
+}
+
+/**
+ *
+ * @param {{ name: string, clazzes: {} }} module
+ * @param {string} str
+ */
+function parseClazz(module, str) {
+  str
+    .split('class')
+    .slice(1)
+    .forEach(s => {
+      const [ , name, str ] = s.trim().split(/^([^ ]+)/i);
+      const parentClazz = module.name === 'data'
+        ? 'object'
+        : name.endsWith('Response') || [ 'ReplyHeader', 'WatcherEvent' ].indexOf(name) >= 0
+          ? 'ResponseRecord'
+          : 'RequestRecord';
+
+      module.clazzes[name] = { name, deps: [], attrs: [], module, parentClazz };
+      if (name === 'MultiHeader') module.clazzes[name].parentClazz = 'MixinRecord';
+
+      parseField(module.clazzes[name], str.trim().slice(1, -1).trim());
+    });
+}
+
+/**
+ *
+ * @param {string} str
+ */
+function parseModule(str) {
+  const modules = {};
+
+  str
+    .split('module')
+    .slice(1)
+    .forEach(s => {
+      const [ , name, str ] = s.trim().split(/^([^ ]+)/i);
+      if (name !== 'proto' && name !== 'data') return;
+
+      modules[name] = { name, clazzes: {} };
+
+      parseClazz(modules[name], str.trim().slice(1, -1).trim());
+    });
+
+  return modules;
+}
+
+/**
+ *
+ * @param {string} jute
+ */
+function parseJute(jute) {
+  return parseModule(
+    jute
+      .replace(/org\.apache\.zookeeper\./g, '')
+      .split(/\n/g)
+      .map(l => l.slice(0, l.indexOf('//') < 0 ? l.length : l.indexOf('//')))
+      .filter(Boolean)
+      .join('\n')
+      .trim()
+  );
+}
+
+const jute = parseJute(
+  fs.readFileSync(`${__dirname}/../zookeeper.jute`, { encoding: 'utf8' })
+);
+const indexTemplate = fs.readFileSync(`${__dirname}/template/index.template`, { encoding: 'utf8' });
+const juteDTemplate = fs.readFileSync(`${__dirname}/template/jute.d.template`, { encoding: 'utf8' });
+const typeTemplate = fs.readFileSync(`${__dirname}/template/type.template`, { encoding: 'utf8' });
+
+// eslint-disable-next-line no-new-func
+const indexFn = new Function('jute', `return \`${indexTemplate}\``);
+// eslint-disable-next-line no-new-func
+const juteDFn = new Function('jute', `return \`${juteDTemplate}\``);
+// eslint-disable-next-line no-new-func
+const typeFn = new Function('jute', 'clazz', `return \`${typeTemplate}\``);
+
+fs.writeFileSync(`${__dirname}/../lib/jute/index.ts`, indexFn(jute));
+fs.writeFileSync(`${__dirname}/../lib/jute/jute.d.ts`, juteDFn(jute));
+
+for (const { name, clazzes } of Object.values(jute)) {
+  for (const clazz of Object.values(clazzes)) {
+    fs.writeFileSync(`${__dirname}/../lib/jute/${name}/${clazz.name}.ts`, typeFn(jute, clazz));
+  }
+}

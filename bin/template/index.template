@@ -1,0 +1,56 @@
+/**
+* This file created by ./bin/gen_types
+* Do not modify this file!!!!!!!!!
+ */
+
+import boolean from './boolean';
+import buffer from './buffer';
+import int from './int';
+import long from './long';
+import ustring from './ustring';
+import vector from './vector';
+
+import type from './basic/type';
+import object from './basic/object';
+import RequestRecord from './basic/RequestRecord';
+import ResponseRecord from './basic/ResponseRecord';
+import EmptyRequestRecord from './basic/EmptyRequestRecord';
+import EmptyResponseRecord from './basic/EmptyResponseRecord';
+import EmptyRequestHeader from './basic/EmptyRequestHeader';
+
+const basic = {
+  type,
+  object,
+  RequestRecord,
+  ResponseRecord,
+  EmptyRequestRecord,
+  EmptyResponseRecord,
+  EmptyRequestHeader,
+};
+
+${
+  Object.values(jute).map(module => {
+    return `${
+      Object.values(module.clazzes).map(c => `import ${c.name} from './${module.name}/${c.name}';`).join('\n')
+    }\n\nconst ${module.name} = {\n${
+      Object.values(module.clazzes).map(c => `  ${c.name},`).join('\n')
+    }\n};`;
+  }).join('\n\n')
+}
+
+export default {
+  boolean,
+  buffer,
+  int,
+  long,
+  ustring,
+  vector,
+
+  basic,
+
+  ${
+  Object.values(jute).map(module => {
+    return `${module.name},`;
+  }).join('\n  ')
+}
+};

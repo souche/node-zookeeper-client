@@ -1,0 +1,43 @@
+{
+  "extends": "eslint-config-egg",
+  "rules": {
+    "valid-jsdoc": "off",
+  },
+
+  "overrides": [
+    {
+      "files": [
+        "**/*.ts",
+        "test/*.test.ts"
+      ],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "sourceType": "module",
+        "project": "./tsconfig.json"
+      },
+      "plugins": ["@typescript-eslint"],
+      "rules": {
+        "@typescript-eslint/adjacent-overload-signatures": "error",
+        "@typescript-eslint/ban-ts-ignore": "error",
+        "@typescript-eslint/ban-types": "error",
+        "@typescript-eslint/consistent-type-assertions": "error",
+        "@typescript-eslint/member-delimiter-style": "error",
+        "@typescript-eslint/member-ordering": "error",
+        "@typescript-eslint/no-inferrable-types": ["error", { "ignoreParameters": false, "ignoreProperties": false }],
+        "@typescript-eslint/no-misused-new": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "@typescript-eslint/no-this-alias": ["error", { "allowDestructuring": true }],
+        "@typescript-eslint/no-unnecessary-type-assertion": "error",
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": ["error", { "vars": "all", "args": "none", "ignoreRestSiblings": true }],
+        "@typescript-eslint/prefer-string-starts-ends-with": "error",
+        "@typescript-eslint/restrict-plus-operands": "error",
+        "semi": "off",
+        "@typescript-eslint/semi": "error",
+
+        // https://github.com/typescript-eslint/typescript-eslint/issues/662
+        "no-undef": "off"
+      }
+    }
+  ],
+}

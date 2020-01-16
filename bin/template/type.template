@@ -1,0 +1,51 @@
+/**
+ * This file created by ./bin/gen_types
+ * Do not modify this file!!!!!!!!!
+ */
+
+${clazz.deps.map(dep => `import ${dep.name} from '${dep.path}';`).join('\n')}
+
+import ${clazz.parentClazz} from '../basic/${clazz.parentClazz}';
+
+type ParamValue = {
+  ${clazz.attrs.map(({ name, type }) => `${name}?: ${type.realType.split(/\|/g).map(t => type.subType ? `${t}<${type.subType.jsType}>` : t).join(' | ')};`).join('\n  ')}
+};
+
+type Value = {
+  ${clazz.attrs.map(({ name, type }) => `${name}: ${type.realType.split(/\|/g).slice(0, 1).map(t => type.subType ? `${t}<${type.subType.jsType}>` : t).join(' | ')};`).join('\n  ')}
+};
+
+export default class ${clazz.name} extends ${clazz.parentClazz} {
+  private _value: Value;
+
+  constructor(value: ParamValue = {}) {
+    const newValue = {
+      ${clazz.attrs.map(({ name, type }) => `${name}: new ${type.name}(value.${name}${type.subType ? `, ${type.subType.name}` : ''}),`).join('\n      ')}
+    };
+
+    super([
+      ${clazz.attrs.map(({ name, type }) => `{ name: '${name}', value: newValue.${name} },`).join('\n      ')}
+    ]);
+
+    this._value = newValue;
+  }
+
+  ${clazz.attrs.map(({ name, type }) => `get ${name}() {
+    return this._value.${name}.valueOf();
+  }
+
+  set ${name}(value) {
+    this._value.${name}.setValue(value);
+  }`).join('\n\n  ')}
+
+  setValue(value: ParamValue = {}) {
+    super.setValue(value);
+  }
+
+  valueOf() {
+    return {
+      ${clazz.attrs.map(({ name, type }) => `${name}: this.${name},`).join('\n      ')}
+    };
+  }
+
+}

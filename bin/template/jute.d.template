@@ -1,0 +1,48 @@
+/**
+* This file created by ./bin/gen_types
+* Do not modify this file!!!!!!!!!
+ */
+
+import _type from './basic/type';
+import _object from './basic/object';
+import _RequestRecord from './basic/RequestRecord';
+import _ResponseRecord from './basic/ResponseRecord';
+import _EmptyRequestRecord from './basic/EmptyRequestRecord';
+import _EmptyResponseRecord from './basic/EmptyResponseRecord';
+import _EmptyRequestHeader from './basic/EmptyRequestHeader';
+
+export namespace basic {
+  type type = _type;
+  type object = _object;
+  type RequestRecord = _RequestRecord;
+  type ResponseRecord = _ResponseRecord;
+  type EmptyRequestRecord = _EmptyRequestRecord;
+  type EmptyResponseRecord = _EmptyResponseRecord;
+  type EmptyRequestHeader = _EmptyRequestHeader;
+}
+
+import _boolean from './boolean';
+import _buffer from './buffer';
+import _int from './int';
+import _long from './long';
+import _ustring from './ustring';
+import _vector from './vector';
+
+export type boolean = _boolean;
+export type buffer = _buffer;
+export type int = _int;
+export type long = _long;
+export type ustring = _ustring;
+export type vector = _vector;
+
+${
+  Object.values(jute).map(module => {
+    return `${
+      Object.values(module.clazzes).map(c => `import _${c.name} from './${module.name}/${c.name}';`).join('\n')
+    }\n\nexport namespace ${module.name} {\n${
+      Object.values(module.clazzes).map(c => `  type ${c.name} = _${c.name};`).join('\n')
+    }\n}`;
+  }).join('\n\n')
+}
+
+export as namespace Jute;
